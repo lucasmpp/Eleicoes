@@ -17,6 +17,8 @@ library(mapdeck)
 title <- tags$a(href='https://www.techfitlab.com',
                 icon("diamond"), 'TechFit')
 
+get(load(file="Dados//dados.Rdata"))
+
 
 m_County <- c("Select All", as.character(sort(unique(iemap$COUNTYNAME))))
 m_Ed <- c("Select All", as.character(sort(unique(iemap$EDNAME))))
