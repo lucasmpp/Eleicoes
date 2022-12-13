@@ -45,7 +45,7 @@ leaflet()%>%
       df$GANHOU == "JAIR MESSIAS BOLSONARO" ~ paletaBolso(df$`JAIR MESSIAS BOLSONARO`),
       df$GANHOU == "BRANCO" ~ paletaBranco(df$NAO_VOTO)
     )   ,
-    fillOpacity = 0.2,
+    fillOpacity = 0.4,
     label =labels,
     labelOptions =  labelOptions(
                   style = list("font-weigth"= "normal",
