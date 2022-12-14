@@ -7,8 +7,12 @@ library(sf)
 library(htmltools)
 
 get(load(file="Dados//dados.Rdata"))
+
 df <- sf::st_as_sf(df3) %>% 
-        mutate(`VOTO NULO` = coalesce(`VOTO NULO`,0),
+        filter(NR_TURNO == 1) %>% 
+        mutate( LULA = coalesce(LULA,0),
+               `JAIR MESSIAS BOLSONARO` = coalesce(`JAIR MESSIAS BOLSONARO`,0),
+               `VOTO NULO` = coalesce(`VOTO NULO`,0),
                `VOTO BRANCO` = coalesce(`VOTO BRANCO`,0)  ) %>% 
         mutate(NAO_VOTO = `VOTO NULO` + `VOTO BRANCO` ) %>% 
         select("LULA","JAIR MESSIAS BOLSONARO","NAO_VOTO",
@@ -25,10 +29,15 @@ paletaLula = colorQuantile(palette = "OrRd",domain = df$LULA)
 paletaBolso = colorQuantile(palette = "PuBu",domain = df$`JAIR MESSIAS BOLSONARO`)
 paletaBranco = colorQuantile(palette = "White",domain = df$NAO_VOTO)
 
-labels <- sprintf(
-  "<strong>%s/<strong>",
-  df$LULA
-  
+labels <- paste(sep = "<br/>",
+                paste0(df$nome_municipio,", ", df$uf ),
+                paste0("Mais votado: ", df$GANHOU),
+                paste0("Votos: ", 
+                  case_when(
+                    df$GANHOU == "LULA" ~ df$LULA,
+                    df$GANHOU == "JAIR MESSIAS BOLSONARO" ~ df$`JAIR MESSIAS BOLSONARO`,
+                    df$GANHOU == "BRANCO" ~ df$NAO_VOTO))
+              
 ) %>% lapply(htmltools::HTML)
 
 leaflet()%>%
@@ -45,7 +54,7 @@ leaflet()%>%
       df$GANHOU == "JAIR MESSIAS BOLSONARO" ~ paletaBolso(df$`JAIR MESSIAS BOLSONARO`),
       df$GANHOU == "BRANCO" ~ paletaBranco(df$NAO_VOTO)
     )   ,
-    fillOpacity = 0.4,
+    fillOpacity = 0.6,
     label =labels,
     labelOptions =  labelOptions(
                   style = list("font-weigth"= "normal",
@@ -53,9 +62,8 @@ leaflet()%>%
                   textsize = "15px",
                   direction = "auto")
 ) 
-
-
-# (case_when(
+# case_when(
 #   df$GANHOU == "LULA" ~ df$LULA,
-#   df$GANHOU == "JAIR MESSIAS BOLSONARO" ~df$`JAIR MESSIAS BOLSONARO`,
-#   df$GANHOU == "BRANCO" ~ df$NAO_VOTO))
+#   df$GANHOU == "JAIR MESSIAS BOLSONARO" ~ df$`JAIR MESSIAS BOLSONARO`,
+#   df$GANHOU == "BRANCO" ~ df$NAO_VOTO)
+#df %>% filter(uf == "DF") %>% view()# select("LULA","JAIR MESSIAS BOLSONARO")
