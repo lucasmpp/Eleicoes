@@ -44,6 +44,38 @@ names(df3)[names(df3) == 'LUIZ IN\xc1CIO LULA DA SILVA'] <- 'LULA'
 names(df3)[names(df3) == 'LEONARDO P\xc9RICLES VIEIRA ROQUE'] <- 'LEONARDO PERICLES'
 ## --------------------------------------- ## 
 
+df1 <- df
+vencedores <- df %>% filter(ganhou == TRUE) %>% select("NR_TURNO","NM_UE",  
+                                                       "SG_UF",   "CD_MUNICIPIO",
+                                                       "NM_VOTAVEL" )
+colnames(vencedores )[colnames(vencedores ) == 'NM_VOTAVEL'] <- 'Ganhador'
+
+cor <- dados %>% 
+  group_by(NR_TURNO,NM_VOTAVEL,NR_VOTAVEL) %>%
+  summarise(n = n()) %>% 
+  arrange(desc(n))
+
+cor1 <- cor %>% 
+  filter(NR_TURNO == 1)
+
+cor1$index <- c(1:nrow(cor1)) 
+cor1 <- cor1 %>% filter(index<=5 | NM_VOTAVEL %in% c('VOTO BRANCO', "VOTO NULO") )
+cor1$cor <- NA
+demais_cores <- c("Bugn","BuPu","PuRd","#FFFF00","#964b00")
+cor1$cor[cor1$NR_VOTAVEL == 13] <- "Reds"
+cor1$cor[cor1$NR_VOTAVEL != 13 & cor1$index<=2] <- "Blues"
+cor1$cor[is.na(cor1$cor)] = demais_cores[1:sum(is.na(cor1$cor))]
+
+
+colnames(cor1)[colnames(cor1) == 'NM_VOTAVEL'] <- 'Ganhador'
+cor1 <-cor1%>% ungroup() %>% select(Ganhador,cor)
+
+vencedor <- left_join(vencedores,cor1)
+
+
+df4 <- left_join(df3,vencedor)
+
 save(df3, file = "dados.Rdata")
 dados2<- get(load(file = "dados.Rdata"))
+
 #save.image("C:/Users/gabri/OneDrive - unb.br/Estatística (1)/7º Semestre/LabEst/dados.RData")
