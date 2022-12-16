@@ -17,6 +17,7 @@ colnames(municipios)[colnames(municipios) == 'codigo_tse'] <- 'CD_MUNICIPIO'
 colnames(all_mun_ms)[colnames(all_mun_ms) == 'code_muni'] <- 'codigo_ibge'
 
 
+
 ## Banco de dados - Nomes presidentes: linha
 df <- dados %>%
   group_by(NR_TURNO,NM_UE, SG_UF, CD_MUNICIPIO, NM_VOTAVEL ) %>%
@@ -24,6 +25,9 @@ df <- dados %>%
   group_by(NR_TURNO,NM_UE, SG_UF, CD_MUNICIPIO) %>%
   mutate('freq' = round(votos / sum(votos),2)) %>% 
   mutate('ganhou' = freq == max(freq))
+
+df$NM_VOTAVEL <- gsub("LUIZ IN<c1>CIO LULA DA SILVA", "LULA",df$NM_VOTAVEL)
+df$NM_VOTAVEL <- gsub("LEONARDO P<c9>RICLES VIEIRA ROQUE", "LEONARDO PERICLES",df$NM_VOTAVEL)
 
 ## Banco de dados - Nomes presidentes: coluna
 
@@ -33,15 +37,17 @@ df2$ganhou <- NULL
 
 df2 <- pivot_wider(df2,names_from = NM_VOTAVEL,
                    values_from = votos)
-getwd()
 
+df2[is.na(df2)] <- 0
+df2$TOTAL <- rowSums( df2[,5:ncol(df2)] )
+df2 <- df2 %>%
+  mutate(NAO_VOTO = `VOTO NULO` + `VOTO BRANCO` )%>%
+  select(-`VOTO BRANCO`, - `VOTO NULO`)
 
 ## Banco de dados - Coordenadas x Eleição
 
 df3 <- left_join(df2, municipios )
 df3 <- left_join(df3, all_mun_ms )
-names(df3)[names(df3) == 'LUIZ IN\xc1CIO LULA DA SILVA'] <- 'LULA'
-names(df3)[names(df3) == 'LEONARDO P\xc9RICLES VIEIRA ROQUE'] <- 'LEONARDO PERICLES'
 ## --------------------------------------- ## 
 
 df1 <- df
@@ -59,7 +65,7 @@ cor1 <- cor %>%
   filter(NR_TURNO == 1)
 
 cor1$index <- c(1:nrow(cor1)) 
-cor1 <- cor1 %>% filter(index<=5 | NM_VOTAVEL %in% c('VOTO BRANCO', "VOTO NULO") )
+cor1 <- cor1 %>% filter(index<=5 | NM_VOTAVEL %in% c('NAO_VOTO') )
 cor1$cor <- NA
 demais_cores <- c("Bugn","BuPu","PuRd","#FFFF00","#964b00")
 cor1$cor[cor1$NR_VOTAVEL == 13] <- "Reds"
@@ -77,5 +83,4 @@ df4 <- left_join(df3,vencedor)
 
 save(df3, file = "dados.Rdata")
 dados2<- get(load(file = "dados.Rdata"))
-
 #save.image("C:/Users/gabri/OneDrive - unb.br/Estatística (1)/7º Semestre/LabEst/dados.RData")
