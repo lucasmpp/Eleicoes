@@ -147,7 +147,7 @@ cor = function(dados){
 }
 
 df_mun = cor(df_mun)
-df_est = cor(df_reg)
+df_est = cor(df_est)
 df_reg = cor(df_reg)
 
 #-----------------------------------------------------------------------------------------#
