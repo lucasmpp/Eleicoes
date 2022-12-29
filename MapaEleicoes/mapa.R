@@ -6,9 +6,9 @@ library(gganimate)
 library(sf)
 library(htmltools)
 
-get(load(file="Dados//dados.Rdata"))
+get(load(file="dados.Rdata"))
 
-df <- sf::st_as_sf(df3) %>% 
+df <- sf::st_as_sf(df4) %>% 
         filter(NR_TURNO == 1) %>% 
         mutate( LULA = coalesce(LULA,0),
                `JAIR MESSIAS BOLSONARO` = coalesce(`JAIR MESSIAS BOLSONARO`,0),
@@ -25,8 +25,8 @@ df <- sf::st_as_sf(df3) %>%
 
 
 
-paletaLula = colorQuantile(palette = "OrRd",domain = df$LULA)
-paletaBolso = colorQuantile(palette = "PuBu",domain = df$`JAIR MESSIAS BOLSONARO`)
+paletaLula = colorQuantile(palette = "Reds",domain = df$LULA)
+paletaBolso = colorQuantile(palette = "Blues",domain = df$`JAIR MESSIAS BOLSONARO`)
 paletaBranco = colorQuantile(palette = "White",domain = df$NAO_VOTO)
 
 labels <- paste(sep = "<br/>",
@@ -54,7 +54,7 @@ leaflet()%>%
       df$GANHOU == "JAIR MESSIAS BOLSONARO" ~ paletaBolso(df$`JAIR MESSIAS BOLSONARO`),
       df$GANHOU == "BRANCO" ~ paletaBranco(df$NAO_VOTO)
     )   ,
-    fillOpacity = 0.6,
+    fillOpacity = 1,
     label =labels,
     labelOptions =  labelOptions(
                   style = list("font-weigth"= "normal",
