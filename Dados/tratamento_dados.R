@@ -4,6 +4,8 @@ library(ggplot2)
 library(sf)
 library(readr)
 library(openxlsx)
+library(leaflet)
+
 
 Sys.setlocale("LC_ALL","pt_BR.UTF-8")
 
@@ -102,4 +104,4 @@ for(linha in c(1:nrow(cor1))){
 }
 
 save(df3, file = "Dados/dados.Rdata")
-save(df3, file = "Dados/colors.Rdata")
+save(colors, file = "Dados/colors.Rdata")

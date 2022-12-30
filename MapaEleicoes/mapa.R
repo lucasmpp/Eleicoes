@@ -6,17 +6,19 @@ library(gganimate)
 library(sf)
 library(htmltools)
 
-get(load(file="Dados//dados.Rdata"))
-get(load(file="Dados//colors.Rdata"))
+df <- get(load(file="Dados//dados.Rdata"))
+colors <- get(load(file="Dados//colors.Rdata"))
 
 
 df <- sf::st_as_sf(df3) 
-#df1 <- df # BACKUP
+df1 <- df # BACKUP
 df <- df1
 df <- df %>%
   filter(Ganhador != "VOTO NULO")%>%
   filter(!is.na(Ganhador))%>% 
-  filter(NR_TURNO == 1) 
+  filter(NR_TURNO == 1)
+
+start_time <- Sys.time()
 
 labels <- paste(sep = "<br/>",
                 paste0(df$nome_municipio,", ", df$uf ),
@@ -28,7 +30,23 @@ labels <- paste(sep = "<br/>",
                          df$Ganhador == "BRANCO" ~ df$NAO_VOTO))
                 
 ) %>% lapply(htmltools::HTML)
-df <- df %>% sf::st_transform('+proj=longlat +datum=WGS84') %>% ungroup()
+
+#####  
+# Definindo a paleta de cores
+
+cor_funcoes <- paste0("colors$`",
+                     unique(df$Ganhador),
+                     "`(df$`",unique(df$Ganhador),"`)") # Consulta para funções
+
+Lcores <- lapply(cor_funcoes, function(x) eval(parse(text=x))) # Gerando as paletas de cores para cada candidato
+Lcores <- as.data.frame(do.call(cbind, Lcores)) # Guardando em um dataframe
+names(Lcores) <- unique(df$Ganhador) # Identificando cada candidato
+Lcores$venceu <- df$Ganhador #Vendo quem venceu em cada local
+Lcores$cor <- Lcores[cbind(1:nrow(Lcores),match(Lcores$venceu, names(Lcores)))] # Atribuindo a cor a linha correspondente
+df$cor <- Lcores$cor
+
+##### 
+
 
 leaflet()%>%
   addPolygons(
@@ -39,8 +57,7 @@ leaflet()%>%
     color = "black",
     dashArray = "1",
     smoothFactor = 0.5,
-    fillColor = ~ eval(parse(text=paste0("colors$`",Ganhador,
-                                         "`(`",Ganhador,"`)")))   ,
+    fillColor = ~ cor,
     fillOpacity = 1,
     label =labels,
     labelOptions =  labelOptions(
@@ -49,10 +66,8 @@ leaflet()%>%
       textsize = "15px",
       direction = "auto")
   ) 
-
-
-# eval(parse(text=paste0("colors$`",df$Ganhador,"`(",
-#                        "df$`",df$Ganhador,"`)")))
+end_time <- Sys.time()
+end_time - start_time
 
 # ------------------------------------------------------------------------------------------#
 
