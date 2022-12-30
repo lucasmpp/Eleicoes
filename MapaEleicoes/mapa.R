@@ -7,36 +7,28 @@ library(sf)
 library(htmltools)
 
 get(load(file="Dados//dados.Rdata"))
+get(load(file="Dados//colors.Rdata"))
 
 
-df <- sf::st_as_sf(df3) %>% 
+df <- sf::st_as_sf(df3) 
+#df1 <- df # BACKUP
+df <- df1
+df <- df %>%
+  filter(Ganhador != "VOTO NULO")%>%
+  filter(!is.na(Ganhador))%>% 
   filter(NR_TURNO == 1) 
-
 
 labels <- paste(sep = "<br/>",
                 paste0(df$nome_municipio,", ", df$uf ),
-                paste0("Mais votado: ", df$GANHOU),
+                paste0("Mais votado: ", df$Ganhador),
                 paste0("Votos: ", 
-                  case_when(
-                    df$GANHOU == "LULA" ~ df$LULA,
-                    df$GANHOU == "JAIR MESSIAS BOLSONARO" ~ df$`JAIR MESSIAS BOLSONARO`,
-                    df$GANHOU == "BRANCO" ~ df$NAO_VOTO))
-              
+                       case_when(
+                         df$Ganhador == "LULA" ~ df$LULA,
+                         df$Ganhador == "JAIR MESSIAS BOLSONARO" ~ df$`JAIR MESSIAS BOLSONARO`,
+                         df$Ganhador == "BRANCO" ~ df$NAO_VOTO))
+                
 ) %>% lapply(htmltools::HTML)
-
-
-df1 <- df # BACKUP
-df <- df1
-
-df <- df %>%
-  filter(Ganhador != "VOTO NULO")%>%
-  filter(!is.na(Ganhador))
-
-df$cor <- gsub("Blues", "PuBu",df$cor)
-df$cor <- gsub("Reds", "OrRd",df$cor)
-
-df <- df[df$Ganhador == "LULA",]
-
+df <- df %>% sf::st_transform('+proj=longlat +datum=WGS84') %>% ungroup()
 
 leaflet()%>%
   addPolygons(
@@ -47,10 +39,9 @@ leaflet()%>%
     color = "black",
     dashArray = "1",
     smoothFactor = 0.5,
-    fillColor = colorQuantile(
-      palette = "OrRd",
-      domain = eval(parse(text=paste0("df$`",df$Ganhador,"`")))),
-    fillOpacity = 0.6,
+    fillColor = ~ eval(parse(text=paste0("colors$`",Ganhador,
+                                         "`(`",Ganhador,"`)")))   ,
+    fillOpacity = 1,
     label =labels,
     labelOptions =  labelOptions(
       style = list("font-weigth"= "normal",
@@ -60,11 +51,64 @@ leaflet()%>%
   ) 
 
 
+# eval(parse(text=paste0("colors$`",df$Ganhador,"`(",
+#                        "df$`",df$Ganhador,"`)")))
+
+# ------------------------------------------------------------------------------------------#
+
+
+
+paletaLula = colorQuantile(palette = "Reds",domain = df$LULA)
+paletaBolso = colorQuantile(palette = "Blues",domain = df$`JAIR MESSIAS BOLSONARO`)
+paletaBranco = colorQuantile(palette = "White",domain = df$NAO_VOTO)
+
+labels <- paste(sep = "<br/>",
+                paste0(df$nome_municipio,", ", df$uf ),
+                paste0("Mais votado: ", df$Ganhador),
+                paste0("Votos: ", 
+                       case_when(
+                         df$Ganhador == "LULA" ~ df$LULA,
+                         df$Ganhador == "JAIR MESSIAS BOLSONARO" ~ df$`JAIR MESSIAS BOLSONARO`,
+                         df$Ganhador == "BRANCO" ~ df$NAO_VOTO))
+                
+) %>% lapply(htmltools::HTML)
+
+leaflet()%>%
+  addPolygons(
+    data = df,
+    stroke = TRUE,
+    weight = 0.05,
+    opacity = 1,
+    color = "black",
+    dashArray = "1",
+    smoothFactor = 0.5,
+    fillColor = case_when(
+      df$Ganhador == "LULA" ~ paletaLula(df$LULA),
+      df$Ganhador == "JAIR MESSIAS BOLSONARO" ~ paletaBolso(df$`JAIR MESSIAS BOLSONARO`),
+      df$Ganhador == "BRANCO" ~ paletaBranco(df$NAO_VOTO)
+    )   ,
+    fillOpacity = 1,
+    label =labels,
+    labelOptions =  labelOptions(
+      style = list("font-weigth"= "normal",
+                   padding = "3px 8px"),
+      textsize = "15px",
+      direction = "auto")
+  ) 
 # case_when(
-#   df$GANHOU == "LULA" ~ df$LULA,
-#   df$GANHOU == "JAIR MESSIAS BOLSONARO" ~ df$`JAIR MESSIAS BOLSONARO`,
-#   df$GANHOU == "BRANCO" ~ df$NAO_VOTO)
+#   df$Ganhador == "LULA" ~ df$LULA,
+#   df$Ganhador == "JAIR MESSIAS BOLSONARO" ~ df$`JAIR MESSIAS BOLSONARO`,
+#   df$Ganhador == "BRANCO" ~ df$NAO_VOTO)
 #df %>% filter(uf == "DF") %>% view()# select("LULA","JAIR MESSIAS BOLSONARO")
+
+
+
+
+
+
+
+
+
 
 #=========================================================================================#
 
@@ -122,13 +166,13 @@ mapa = function(dados, area){
       dashArray = "1",
       smoothFactor = 0.5,
       fillColor = case_when(
-        dados$ganhou & dados$cor == 'Reds' ~ paleta('Reds', dados$freq), 
-        dados$ganhou & dados$cor == 'Blues' ~ paleta('Blues', dados$freq),
-        dados$ganhou & dados$cor == 'Greys' ~ paleta('Greys', dados$freq),
-        dados$ganhou & dados$cor == 'Greens' ~ paleta('Greens', dados$freq), 
-        dados$ganhou & dados$cor == 'Purples' ~ paleta('Purples', dados$freq),
-        dados$ganhou & dados$cor == 'Oranges' ~ paleta('Oranges', dados$freq),
-        dados$ganhou & dados$cor == 'PuRd' ~ paleta('PuRd', dados$freq)
+        dados$Ganhador & dados$cor == 'Reds' ~ paleta('Reds', dados$freq), 
+        dados$Ganhador & dados$cor == 'Blues' ~ paleta('Blues', dados$freq),
+        dados$Ganhador & dados$cor == 'Greys' ~ paleta('Greys', dados$freq),
+        dados$Ganhador & dados$cor == 'Greens' ~ paleta('Greens', dados$freq), 
+        dados$Ganhador & dados$cor == 'Purples' ~ paleta('Purples', dados$freq),
+        dados$Ganhador & dados$cor == 'Oranges' ~ paleta('Oranges', dados$freq),
+        dados$Ganhador & dados$cor == 'PuRd' ~ paleta('PuRd', dados$freq)
       ),
       fillOpacity = 0.8,
       label = labels(dados, area),

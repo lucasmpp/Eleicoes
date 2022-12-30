@@ -78,7 +78,7 @@ cor1$NM_VOTAVEL <- gsub("LEONARDO P<c9>RICLES VIEIRA ROQUE", "LEONARDO PERICLES"
 cor1$index <- c(1:nrow(cor1)) 
 cor1 <- cor1 %>% filter(index<=5 | NM_VOTAVEL %in% c('NAO_VOTO') )
 cor1$cor <- NA
-demais_cores <- c("Bugn","BuPu","PuRd","#FFFF00","#964b00")
+demais_cores <- c("Greys","Greens","Purples","#Oranges","#PuRd")
 cor1$cor[cor1$NR_VOTAVEL == 13] <- "Reds"
 cor1$cor[cor1$NR_VOTAVEL != 13 & cor1$index<=2] <- "Blues"
 cor1$cor[is.na(cor1$cor)] = demais_cores[1:sum(is.na(cor1$cor))]
@@ -86,10 +86,20 @@ cor1$cor[is.na(cor1$cor)] = demais_cores[1:sum(is.na(cor1$cor))]
 
 colnames(cor1)[colnames(cor1) == 'NM_VOTAVEL'] <- 'Ganhador'
 cor1 <-cor1%>% ungroup() %>% select(Ganhador,cor)
-
 vencedor <- left_join(vencedores,cor1)
-
 
 df3 <- left_join(df3,vencedor)
 
+
+
+colors <- list()
+
+for(linha in c(1:nrow(cor1))){
+  colors[[ cor1$Ganhador[linha] ]] <- colorQuantile(
+    palette = cor1$cor[linha],
+    domain = eval(parse(text=paste0("df3$`",cor1$Ganhador[linha],"`"))))
+  print(cor1$Ganhador[linha])
+}
+
 save(df3, file = "Dados/dados.Rdata")
+save(df3, file = "Dados/colors.Rdata")
