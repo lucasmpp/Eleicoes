@@ -43,7 +43,7 @@ Lcores <- as.data.frame(do.call(cbind, Lcores)) # Guardando em um dataframe
 names(Lcores) <- unique(df$Ganhador) # Identificando cada candidato
 Lcores$venceu <- df$Ganhador #Vendo quem venceu em cada local
 Lcores$cor <- Lcores[cbind(1:nrow(Lcores),match(Lcores$venceu, names(Lcores)))] # Atribuindo a cor a linha correspondente
-df$cor <- Lcores$cor
+df$cor <- Lcores$cor # Adicionando ao banco original
 
 ##### 
 
