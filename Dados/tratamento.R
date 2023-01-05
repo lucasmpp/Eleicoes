@@ -151,6 +151,10 @@ dados_mun$cor <- Paleta.cores('dados_mun',dados_mun$Ganhador)
 dados_est$cor <- Paleta.cores('dados_est',dados_est$Ganhador)
 dados_reg$cor <- Paleta.cores('dados_reg',dados_reg$Ganhador)
 
+save(dados_mun, file = "Dados/dados_mun.Rdata")
+save(dados_est, file = "Dados/dados_est.Rdata")
+save(dados_reg, file = "dados_reg.Rdata")
+
 mapa(dados_mun,1)
 mapa(dados_mun,2)
 mapa(dados_est,1)

@@ -1,8 +1,37 @@
-setwd("C:/Users/gabri/OneDrive - unb.br/Estatística (1)/Padronização/Shiny")
-
 library(shiny)
 library(shinythemes)
 library(shinyWidgets)
+
+pacman::p_load('tidyverse','geobr','sf','readr','openxlsx','leaflet',"leaflet.extras")
+
+setwd("C:/Users/gabri/OneDrive - unb.br/Estatística (1)/7º Semestre/LabEst/Git/Eleicoes/Shiny")
+
+get(load("dados_reg.RData"))
+
+mapa <- function(dados, turno){
+  df <- sf::st_as_sf(dados) %>% filter(NR_TURNO == turno)
+  
+  leaflet()%>%
+    addPolygons(
+      data = df,
+      stroke = TRUE,
+      weight = 0.05,
+      opacity = 1,
+      color = "black",
+      dashArray = "1",
+      smoothFactor = 0.5,
+      fillColor = ~ cor,
+      fillOpacity = 1,
+      #label =labels,
+      labelOptions =  labelOptions(
+        style = list("font-weigth"= "normal",
+                     padding = "3px 8px"),
+        textsize = "15px",
+        direction = "auto")
+    ) %>%
+    setMapWidgetStyle(list(background= "#F5F5F5"))
+  
+}
 
 
 ui <- div(
@@ -66,19 +95,59 @@ ui <- div(
                     style = "position: relative; 
                     margin:-15px 0px; 
                     display:right-align;")),
-    selected = "Density",
+    selected = "Inicio",
   tabPanel(
-    "Apuração"
-  ),
+    "Inicio",
+    fluidPage(
+        mainPanel(h1("Bem vindo ao analisador de dados da Salt"),
+                  h1(""),
+                  h4("Anexe ao lado o banco de dados principal a ser analizado"),
+                  h4("Obs: Anexe o banco de dados secundário apenas se for comparar variáveis ao longo de anos diferentes"))
+      )
+    ),
   tabPanel(
-    "Projeção"
-    )
+    "Apuração",
+    fluidPage(
+      fluidRow(style = "height:500px", 
+        column(width = 8,
+               leafletOutput("mymap")
+        ),
+        column(width = 3,
+               h1(""),
+               selectInput("var1", label = "Selecione o ano",
+                           choices = seq(2010,2022,by=4)),
+               selectInput("var2", label = "Selecione o Turno",
+                           choices =c(1,2)),
+               selectInput("var3", label = "Selecione a área",
+                           choices = c("Município","Estado","Região")),
+               tableOutput("tabela.apuracao")
+               
+        )
+      ) 
+    )),
+  tabPanel(
+    "Projeção")
+  )
+  , tags$head(tags$style("
+      .myRow1{height:250px;}
+      .myRow2{height:350px;background-color: pink;}")
   )
 )
 
 
 
-server <- function(input, output, session) {}
+server <- function(input, output, session) {
+  
+  output$mymap <- renderLeaflet({
+    mapa(dados_reg,input$var2)
+  })
+  
+  output$tabela.apuracao <- renderTable({
+    data.frame(x=c("A","B"),
+               y = c(1,2))
+  })
+  
+}
 
 # Run the application
 shinyApp(ui = ui, server = server)
