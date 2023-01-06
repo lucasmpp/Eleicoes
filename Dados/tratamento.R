@@ -74,11 +74,14 @@ for(linha in rank_cor$rank){
 
 ## Funções
 
-label.function <- function(df,coluna){
+label.function <- function(df,coluna,diff=FALSE){
   df.1 <- df %>%
     group_by_at(match(c('NR_TURNO',coluna),names(df)))%>% # Pela coluna
     arrange(desc(VOTOS))%>%
-    summarize(labels = paste(NM_VOTAVEL,": ",ifelse(VOTOS>0,"+",""),VOTOS,"%", collapse = '<br/>'))
+    summarize(labels = paste(NM_VOTAVEL,": ",
+                              ifelse(diff,
+                                    ifelse(VOTOS>0,"+",""),""),
+                              VOTOS,"%", collapse = '<br/>'))
   
   return(df.1)
 }
@@ -106,7 +109,7 @@ tratamento <- function(dados_base, geografia, coluna, diff = FALSE){
     df$NR_TURNO <- "Diferença"
     df <- df %>% select(match(myCols,names(df)))
   }
-  tabela.labels <- label.function(df,coluna)
+  tabela.labels <- label.function(df,coluna,diff)
   df <- pivot_wider(df, names_from = NM_VOTAVEL,values_from = VOTOS)
   df[is.na(df)] <- 0
   
@@ -122,6 +125,9 @@ tratamento <- function(dados_base, geografia, coluna, diff = FALSE){
   df <- left_join(df, geografia, by = coluna)
   df <- na.omit(df)
   df$labels <-  paste0(paste(df$name_state,", ", df$name_region,"<br/>"),df$labels )%>% lapply(htmltools::HTML)
+  
+  #Paleta.cores(sub("\\$.*", "", deparse(substitute(df$Ganhador))), df$Ganhador)
+  
   return(df)
 }
 
@@ -155,7 +161,7 @@ mapa <- function(df, turno, diff=FALSE){
       smoothFactor = 0.5,
       fillColor = ~ cor,
       fillOpacity = 1,
-      label = as.character(labels) %>% lapply(htmltools::HTML),
+      label = labels,
       labelOptions =  labelOptions(
         style = list("font-weigth"= "normal",
                      padding = "3px 8px"),
@@ -173,7 +179,7 @@ mapa(dados_mun,1,diff = TRUE)
 
 # Banco de dados
 
-dados_mun <- tratamento(dados_base,geo_mun,'CD_MUNICIPIO', diff = TRUE)
+dados_mun <- tratamento(dados_base,geo_mun,'CD_MUNICIPIO')
 dados_est <- tratamento(dados_base,geo_est,'SG_UF')
 dados_reg <- tratamento(dados_base,geo_reg,'name_region')
 dados_reg_diff <- tratamento(dados_base,geo_reg,'name_region', diff=TRUE)
