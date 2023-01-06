@@ -99,18 +99,16 @@ ui <- div(
   tabPanel(
     "Inicio",
     fluidPage(
-        mainPanel(h1("Bem vindo ao analisador de dados da Salt"),
-                  h1(""),
-                  h4("Anexe ao lado o banco de dados principal a ser analizado"),
-                  h4("Obs: Anexe o banco de dados secundário apenas se for comparar variáveis ao longo de anos diferentes"))
-      )
+        mainPanel(h1("Bem vindo ao analisador de dados das Eleições"),
+                  h1("")
+      ))
     ),
   tabPanel(
     "Apuração",
     fluidPage(
-      fluidRow(style = "height:500px", 
+      fluidRow(style = "height:700px", 
         column(width = 8,
-               leafletOutput("mymap")
+               leafletOutput("mymap",width="90%",height="500px")
         ),
         column(width = 3,
                h1(""),
@@ -119,8 +117,8 @@ ui <- div(
                selectInput("var2", label = "Selecione o Turno",
                            choices =c(1,2)),
                selectInput("var3", label = "Selecione a área",
-                           choices = c("Município","Estado","Região")),
-               tableOutput("tabela.apuracao")
+                           choices = c("Município","Estado","Região"))#,
+               #tableOutput("tabela.apuracao")
                
         )
       ) 

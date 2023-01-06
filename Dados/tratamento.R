@@ -29,7 +29,7 @@ colnames(geo_mun)[colnames(geo_mun) == 'code_muni'] <- 'codigo_ibge'
 colnames(geo_est)[colnames(geo_est) == 'abbrev_state'] <- 'SG_UF'
 
 geo_mun = left_join(geo_mun,municipios[,c(1,5)],by='codigo_ibge')%>%
-  select(-"name_muni",-"code_state",-"abbrev_state",-"name_state",-"code_region" )
+  select(-"name_muni",-"code_state",-"code_region" )
 
 regioes <- as.data.frame(geo_est) %>%
   select(SG_UF,name_region) 
@@ -74,25 +74,54 @@ for(linha in rank_cor$rank){
 
 ## Funções
 
+label.function <- function(df,coluna){
+  df.1 <- df %>%
+    group_by_at(match(c('NR_TURNO',coluna),names(df)))%>% # Pela coluna
+    arrange(desc(VOTOS))%>%
+    summarize(labels = paste(NM_VOTAVEL,": ",ifelse(VOTOS>0,"+",""),VOTOS,"%", collapse = '<br/>'))
+  
+  return(df.1)
+}
 
-tratamento <- function(dados_base, geografia, coluna){
+tratamento <- function(dados_base, geografia, coluna, diff = FALSE){
   df <- dados_base
-  df <- df %>% ungroup()%>%
-    group_by(NR_TURNO, NM_VOTAVEL, eval(parse(text=coluna)))%>%
+  myCols <- c('NR_TURNO', 'NM_VOTAVEL', coluna,'VOTOS')
+  df <- df %>% 
+    ungroup()%>%
+    select(myCols) %>%
+    group_by_at(myCols[1:3])%>%
     summarise(VOTOS = sum(VOTOS)) 
-  colnames(df) <- c("NR_TURNO","NM_VOTAVEL",coluna,"VOTOS")
-  df <- na.omit(df)
+  df <- na.omit(df) # Retirando indefinidos
+  
+  if(diff){
+    
+    df <- df %>%
+      pivot_wider(names_from = NR_TURNO, values_from = VOTOS) %>% 
+      na.omit() %>%
+      group_by_at(2) %>%
+      mutate(`1` = `1`/sum(`1`))%>%
+      mutate(`2` = `2`/sum(`2`))
+      
+    df$VOTOS <- round((df$`2` - df$`1`)*100,2)
+    df$NR_TURNO <- "Diferença"
+    df <- df %>% select(match(myCols,names(df)))
+  }
+  tabela.labels <- label.function(df,coluna)
   df <- pivot_wider(df, names_from = NM_VOTAVEL,values_from = VOTOS)
   df[is.na(df)] <- 0
   
-  df$TOTAL <- rowSums( df[,3:ncol(df)] )
-  
   temp <- df[,-c(1,2,ncol(df))] %>%
     mutate(Ganhador = names(.)[max.col(., 'first')])
-  df[,-c(1,2,ncol(df))] <- df[,-c(1,2,ncol(df))]/df$TOTAL
+  
+  if(diff==FALSE){
+    df$TOTAL <- rowSums( df[,3:ncol(df)] )
+    df[,-c(1,2,ncol(df))] <- df[,-c(1,2,ncol(df))]/df$TOTAL
+  }
   df$Ganhador = temp$Ganhador
-  df <- left_join(df, geografia)
+  df <- left_join(df,tabela.labels)
+  df <- left_join(df, geografia, by = coluna)
   df <- na.omit(df)
+  df$labels <-  paste0(paste(df$name_state,", ", df$name_region,"<br/>"),df$labels )%>% lapply(htmltools::HTML)
   return(df)
 }
 
@@ -108,9 +137,12 @@ Paleta.cores <- function(df,vetor.ganhador){
   return(Lcores$cor) # Adicionando ao banco original
 }
 
-
-mapa <- function(dados, turno){
-  df <- sf::st_as_sf(dados) %>% filter(NR_TURNO == turno)
+mapa <- function(df, turno, diff=FALSE){
+  df <- sf::st_as_sf(df)
+  if(diff== FALSE){
+    df <- df %>% filter(NR_TURNO == turno)
+  }
+    
   
   leaflet() %>%
     addPolygons(
@@ -123,7 +155,7 @@ mapa <- function(dados, turno){
       smoothFactor = 0.5,
       fillColor = ~ cor,
       fillOpacity = 1,
-      #label =labels,
+      label = as.character(labels) %>% lapply(htmltools::HTML),
       labelOptions =  labelOptions(
         style = list("font-weigth"= "normal",
                      padding = "3px 8px"),
@@ -133,15 +165,18 @@ mapa <- function(dados, turno){
 }
 
 ###
+#TESTES 
+dados_mun <- tratamento(dados_base,geo_mun,'CD_MUNICIPIO', diff = TRUE)
+dados_mun$cor <- Paleta.cores('dados_mun',dados_mun$Ganhador)
+mapa(dados_mun,1,diff = TRUE)
 
 
 # Banco de dados
 
-dados_base$NR_VOTAVEL <- NULL
-
-dados_mun <- tratamento(dados_base,geo_mun,'CD_MUNICIPIO')
+dados_mun <- tratamento(dados_base,geo_mun,'CD_MUNICIPIO', diff = TRUE)
 dados_est <- tratamento(dados_base,geo_est,'SG_UF')
 dados_reg <- tratamento(dados_base,geo_reg,'name_region')
+dados_reg_diff <- tratamento(dados_base,geo_reg,'name_region', diff=TRUE)
 
 remove(geo_mun,geo_est,geo_reg)
 
@@ -151,14 +186,14 @@ dados_mun$cor <- Paleta.cores('dados_mun',dados_mun$Ganhador)
 dados_est$cor <- Paleta.cores('dados_est',dados_est$Ganhador)
 dados_reg$cor <- Paleta.cores('dados_reg',dados_reg$Ganhador)
 
-save(dados_mun, file = "Dados/dados_mun.Rdata")
-save(dados_est, file = "Dados/dados_est.Rdata")
-save(dados_reg, file = "dados_reg.Rdata")
+# save(dados_mun, file = "Dados/dados_mun.Rdata")
+# save(dados_est, file = "Dados/dados_est.Rdata")
+# save(dados_reg, file = "dados_reg.Rdata")
 
-mapa(dados_mun,1)
+mapa(dados_mun,1,diff = TRUE)
 mapa(dados_mun,2)
 mapa(dados_est,1)
 mapa(dados_est,2)
 mapa(dados_reg,1)
-mapa(dados_reg,2)
+mapa(dados_reg,2,diff = TRUE)
 
