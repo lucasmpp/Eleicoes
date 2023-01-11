@@ -44,7 +44,8 @@ dados_base <- left_join(dados_base, regioes)
 
 remove(dados,municipios,regioes)
 
-### Criando cores padrões 
+#####
+#Criando cores padrões 
 
 rank_cor <- dados_base %>%
   filter(NR_TURNO == 1) %>%
@@ -71,7 +72,7 @@ for(linha in rank_cor$rank){
     domain = eval(parse(text=paste0("dados_base$`",rank_cor$NM_VOTAVEL[linha],"`"))))
   print(rank_cor$NM_VOTAVEL[linha])
 }
-
+#####
 ## Funções
 
 label.function <- function(df,coluna,diff=FALSE){
@@ -92,9 +93,22 @@ label.function <- function(df,coluna,diff=FALSE){
   return(df.1)
 }
 
-tratamento <- function(dados_base, geografia, coluna, diff = FALSE){
+tratamento <- function(dados, filtro.geo , diff = FALSE){
+  
+  if(filtro.geo == "Municipios"){
+    geografia <- geo_mun
+    coluna <- 'CD_MUNICIPIO'
+  }else if(filtro.geo == "Estados"){
+    geografia <- geo_est
+    coluna <- 'SG_UF'
+  }else{
+    geografia <-geo_reg
+    coluna <- 'name_region'
+  }
+  
+  
   print(diff)
-  df <- dados_base
+  df <- dados[[1]]
   myCols <- c('NR_TURNO', 'NM_VOTAVEL', coluna,'VOTOS')
   df <- df %>% 
     ungroup()%>%
@@ -138,21 +152,18 @@ tratamento <- function(dados_base, geografia, coluna, diff = FALSE){
            paste0(df$name_state,", ")),
            df$name_region,"<br/>"),df$labels) %>% lapply(htmltools::HTML)
   
-  #Paleta.cores(sub("\\$.*", "", deparse(substitute(df$Ganhador))), df$Ganhador)
-  
-  return(df)
-}
-
-Paleta.cores <- function(df,vetor.ganhador){
+  #Paleta.cores(df, df$Ganhador)
+  cod.cor <- dados[[2]]
   cor_funcoes <- paste0("cod.cor$`",
-                        unique(vetor.ganhador),
-                        "`(",df,"$`",unique(vetor.ganhador),"`)") # Consulta para funções
+                        unique(df$Ganhador),
+                        "`(df$`",unique(df$Ganhador),"`)") # Consulta para funções
   Lcores <- lapply(cor_funcoes, function(x) eval(parse(text=x))) # Gerando as paletas de cores para cada candidato
   Lcores <- as.data.frame(do.call(cbind, Lcores)) # Guardando em um dataframe
-  names(Lcores) <- unique(vetor.ganhador) # Identificando cada candidato
-  Lcores$venceu <- vetor.ganhador #Vendo quem venceu em cada local
+  names(Lcores) <- unique(df$Ganhador) # Identificando cada candidato
+  Lcores$venceu <- df$Ganhador #Vendo quem venceu em cada local
   Lcores$cor <- Lcores[cbind(1:nrow(Lcores),match(Lcores$venceu, names(Lcores)))] # Atribuindo a cor a linha correspondente
-  return(Lcores$cor) # Adicionando ao banco original
+  df$cor <-Lcores$cor # Adicionando ao banco original
+  return(df)
 }
 
 mapa <- function(df, turno, diff=FALSE){
@@ -182,32 +193,33 @@ mapa <- function(df, turno, diff=FALSE){
     )
 }
 
-###
-# Banco de dados
 
-dados_mun <- tratamento(dados_base,geo_mun,'CD_MUNICIPIO')
-dados_mun$cor <- Paleta.cores('dados_mun',dados_mun$Ganhador)
+# Banco de dados
+E.2022 <- list(dados_base,cod.cor)
+
+dados_mun <- tratamento(E.2022,'Municipios',diff=FALSE)
 mapa(dados_mun,1)
 mapa(dados_mun,2)
 
-
-dados_est <- tratamento(dados_base,geo_est,'SG_UF')
-dados_est$cor <- Paleta.cores('dados_est',dados_est$Ganhador)
+dados_est <- tratamento(dados_base,'Estados',diff=FALSE)
 mapa(dados_est,1)
 mapa(dados_est,2)
 
-dados_reg <- tratamento(dados_base,geo_reg,'name_region')
-dados_reg$cor <- Paleta.cores('dados_reg',dados_reg$Ganhador)
+dados_reg <- tratamento(dados_base,'Regiões',diff=FALSE)
 mapa(dados_reg,1)
-mapa(dados_reg_diff,2)
 
-dados_reg_diff <- tratamento(dados_base,geo_reg,'name_region', diff=TRUE)
-dados_reg_diff$cor <- Paleta.cores('dados_reg_diff',dados_reg_diff$Ganhador)
-mapa(dados_reg,1,diff = TRUE)
+dados_reg_diff <- tratamento(dados_base,'Regiões', diff=TRUE)
 mapa(dados_reg_diff,2,diff = TRUE)
 
 #remove(geo_mun,geo_est,geo_reg)
-
-
-
-
+# Paleta.cores <- function(df,vetor.ganhador){
+#   cor_funcoes <- paste0("cod.cor$`",
+#                         unique(vetor.ganhador),
+#                         "`(",df,"$`",unique(vetor.ganhador),"`)") # Consulta para funções
+#   Lcores <- lapply(cor_funcoes, function(x) eval(parse(text=x))) # Gerando as paletas de cores para cada candidato
+#   Lcores <- as.data.frame(do.call(cbind, Lcores)) # Guardando em um dataframe
+#   names(Lcores) <- unique(vetor.ganhador) # Identificando cada candidato
+#   Lcores$venceu <- vetor.ganhador #Vendo quem venceu em cada local
+#   Lcores$cor <- Lcores[cbind(1:nrow(Lcores),match(Lcores$venceu, names(Lcores)))] # Atribuindo a cor a linha correspondente
+#   return(Lcores$cor) # Adicionando ao banco original
+# }

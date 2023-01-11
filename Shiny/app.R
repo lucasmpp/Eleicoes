@@ -112,11 +112,11 @@ ui <- div(
         ),
         column(width = 3,
                h1(""),
-               selectInput("var1", label = "Selecione o ano",
+               selectInput("ano", label = "Selecione o ano",
                            choices = seq(2010,2022,by=4)),
-               selectInput("var2", label = "Selecione o Turno",
+               selectInput("turno", label = "Selecione o Turno",
                            choices =c(1,2)),
-               selectInput("var3", label = "Selecione a área",
+               selectInput("area", label = "Selecione a área",
                            choices = c("Município","Estado","Região"))#,
                #tableOutput("tabela.apuracao")
                
@@ -138,7 +138,8 @@ server <- function(input, output, session) {
   
   output$mymap <- renderLeaflet({
     mapa(dados_reg,input$var2)
-  })
+  })%>%
+    bindCache(input$ano,input$turno,input$area)
   
   output$tabela.apuracao <- renderTable({
     data.frame(x=c("A","B"),
