@@ -13,9 +13,15 @@ if (!require("pacman")) install.packages("pacman")
 pacman::p_load('shiny','shinythemes','shinyWidgets','tidyverse','geobr',
                'sf','readr','openxlsx','leaflet',"leaflet.extras")
 
-setwd("C:/Users/haidara/Documents/Ana Unb/Labest")
+for(ano in seq(2010,2022,by=4)){
+  get(load(paste0("./Banco de dados/votos_",ano,".Rdata")))
+  get(load(paste0("./Banco de dados/mapa_",ano,".Rdata")))
+}
 
-get(load("dados_reg.RData"))
+get(load("./Banco de dados/geo_mun.Rdata"))
+get(load("./Banco de dados/geo_est.Rdata"))
+get(load("./Banco de dados/geo_reg.Rdata"))
+
 
 # Funções
 
@@ -51,7 +57,6 @@ tratamento <- function(dados, filtro.geo , diff = FALSE){
   }
   
   
-  print(diff)
   df <- dados[[1]]
   myCols <- c('NR_TURNO', 'NM_VOTAVEL', coluna,'VOTOS')
   df <- df %>% 
@@ -74,6 +79,7 @@ tratamento <- function(dados, filtro.geo , diff = FALSE){
     df$NR_TURNO <- "Diferença"
     df <- df %>% select(match(myCols,names(df)))
   }
+  
   tabela.labels <- label.function(df,coluna,diff)
   df <- pivot_wider(df, names_from = NM_VOTAVEL,values_from = VOTOS)
   df[is.na(df)] <- 0
@@ -132,7 +138,7 @@ mapa <- function(df, turno, diff=FALSE){
       labelOptions =  labelOptions(
         style = list("font-weigth"= "normal",
                      padding = "3px 8px"),
-        textsize = "15px",
+        textsize = "11px",
         direction = "auto")
     ) %>%
     setMapWidgetStyle(list(background= "#F5F5F5"))
@@ -278,29 +284,59 @@ server <- function(input, output, session) {
   
   
   dados_mapa <- reactive({ 
+    req(input$ano)
+    req(input$area)
     
-    tratamento(mapa_2018, input$area, diff=FALSE)
+    if(input$ano == 2010){
+      mapa_db <- mapa_2010
+      
+    } else if(input$ano == 2014){
+      mapa_db <- mapa_2014
+      
+    }else if(input$ano == 2018){
+      mapa_db <- mapa_2018
+      
+    }else if(input$ano == 2022){
+      mapa_db <- mapa_2022
+    }
+    tratamento(mapa_db, input$area, diff=FALSE)
     
-  }) %>% bindCache(input$area)
-  
+  }) %>%
+    bindCache(input$ano, input$area)
+
   
   output$mapa <- renderLeaflet({
     mapa(dados_mapa(),input$turno)
-  })%>%
-    bindCache(input$ano,input$turno,input$area)
+  })#%>%
+    #bindCache(input$ano,input$turno,input$area)
+  
+  votos <- reactive({
+    req(input$ano)
+    
+    if(input$ano == 2010){
+      votos_2010
+    } else if(input$ano == 2014){
+      votos_2014
+    }else if(input$ano == 2018){
+      votos_2018
+    }else if(input$ano == 2022){
+      votos_2022
+    }
+  }) #%>%
+    #bindCache(input$ano)
   
   tabela <- reactive({ 
-    votos_2018 %>%
+    votos() %>%
       filter(NR_TURNO == input$turno & !(NR_VOTAVEL %in% c(95,96))) %>%
       group_by(NM_VOTAVEL)%>%
       summarise(TOTAL = sum(VOTOS))%>%
       mutate('FREQ' = paste0(100*round(TOTAL / sum(TOTAL),4),"%")) %>%
       arrange(desc(TOTAL))
     
-  }) %>% bindCache(input$turno)
+  }) # %>% bindCache(input$ano,input$turno)
   
   nulo <- reactive({ 
-    votos_2018 %>%
+    votos() %>%
       filter(NR_TURNO == input$turno) %>%
       group_by(NM_VOTAVEL)%>%
       summarise(TOTAL = sum(VOTOS))%>%
@@ -308,7 +344,7 @@ server <- function(input, output, session) {
       filter(NM_VOTAVEL %in% c("VOTO NULO","VOTO BRANCO")) %>%
       arrange(desc(TOTAL))
     
-  }) %>% bindCache(input$turno)
+  }) %>% bindCache(input$ano,input$turno)
   
   output$tab_validos <- DT::renderDataTable({
     DT::datatable(tabela(), 
