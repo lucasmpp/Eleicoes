@@ -83,8 +83,8 @@ cor <- function(dados_base){
   cod.cor <- list()
   for(linha in rank_cor$rank){
     cod.cor[[ as.character(rank_cor$NM_VOTAVEL[linha])]] <- colorQuantile(
-      palette = rank_cor$cor[linha],
-      domain = eval(parse(text=paste0("dados_base$`",rank_cor$NM_VOTAVEL[linha],"`"))))
+      palette = rank_cor$cor[linha], n=9,
+      domain = seq(-1,1,by=0.1))
   }
   
   return(cod.cor)
