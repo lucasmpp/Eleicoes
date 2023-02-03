@@ -27,7 +27,7 @@ get(load("./Banco de dados/geo_reg.Rdata"))
 
 label.function <- function(df,coluna,diff=FALSE){
   if(diff){
-    df$VOTOS <- paste0(ifelse(df$VOTOS>0,"+",""),df$VOTOS)
+    df$VOTOS <- paste0(ifelse(df$VOTOS>0,"+",""),df$VOTOS*100)
   }else{
     df <- df%>%
       group_by_at(c(1,3)) %>%
@@ -75,7 +75,7 @@ tratamento <- function(dados, filtro.geo , diff = FALSE){
       mutate(`1` = `1`/sum(`1`))%>%
       mutate(`2` = `2`/sum(`2`))
     
-    df$VOTOS <- round((df$`2` - df$`1`)*100,2)
+    df$VOTOS <- round((df$`2` - df$`1`),4)
     df$NR_TURNO <- "Diferença"
     df <- df %>% select(match(myCols,names(df)))
   }
