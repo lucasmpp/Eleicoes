@@ -93,9 +93,24 @@ cor <- function(dados_base){
 
 # Banco de dados final
 
-votos_2022 <- banco_linha(dados_tse)
-mapa_2022 <- list(banco_linha(dados_tse),cor(banco_linha(dados_tse)))
+votos_2022 <- banco_linha(tse_2022)
 
+candidatos = read.csv("Lista_Candidatos_Presidente.csv", encoding = 'UTF-8',sep = ";") %>%
+  filter(Nome.Urna != 'CONSTITUINTE EYMAEL')
+
+aux = left_join(votos_2022,candidatos,by='NM_VOTAVEL') 
+aux %>% group_by(NM_VOTAVEL,Nome.Urna) %>% summarise()
+
+votos_2022 = aux[,-4]
+colnames(votos_2022)[colnames(votos_2022) == 'Nome.Urna'] <- 'NM_VOTAVEL'
+
+unique(votos_2022$NM_VOTAVEL) # conferindo nomes
+
+mapa_2022 <- list(votos_2022,cor(votos_2022))
+
+mapa_2022[[2]] # conferindo paleta de cores
+
+ano = '2022'
 save(votos_2022, file = paste0("votos_",ano,".Rdata"))
 save(mapa_2022, file = paste0("mapa_",ano,".Rdata"))
 
