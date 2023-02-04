@@ -104,9 +104,18 @@ tratamento <- function(dados, filtro.geo , diff = FALSE){
   
   #Paleta.cores(df, df$Ganhador)
   cod.cor <- dados[[2]]
-  cor_funcoes <- paste0("cod.cor$`",
-                        unique(df$Ganhador),
-                        "`(df$`",unique(df$Ganhador),"`)") # Consulta para funções
+  
+  if(diff==TRUE){
+    cor_funcoes <- paste0("cod.cor$`",
+                          unique(df$Ganhador),
+                          "`(metan::resca(values=df$`",unique(df$Ganhador),
+                          "`, new_min = 0, new_max = 1))")
+  }else{
+    cor_funcoes <- paste0("cod.cor$`",
+                          unique(df$Ganhador),
+                          "`(df$`",unique(df$Ganhador),"`)") # Consulta para funções
+  }
+  
   Lcores <- lapply(cor_funcoes, function(x) eval(parse(text=x))) # Gerando as paletas de cores para cada candidato
   Lcores <- as.data.frame(do.call(cbind, Lcores)) # Guardando em um dataframe
   names(Lcores) <- unique(df$Ganhador) # Identificando cada candidato
