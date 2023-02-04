@@ -299,7 +299,7 @@ server <- function(input, output, session) {
     if(input$ano == 2010){
       mapa_db <- mapa_2010
       
-    } else if(input$ano == 2014){
+    }else if(input$ano == 2014){
       mapa_db <- mapa_2014
       
     }else if(input$ano == 2018){
@@ -308,16 +308,26 @@ server <- function(input, output, session) {
     }else if(input$ano == 2022){
       mapa_db <- mapa_2022
     }
-    tratamento(mapa_db, input$area, diff=FALSE)
+    
+    if(input$turno=="Diferença"){
+      tratamento(mapa_db, input$area, diff = TRUE)
+    } else {
+      tratamento(mapa_db, input$area, diff = FALSE)
+    }
     
   }) %>%
-    bindCache(input$ano, input$area)
-
+    bindCache(input$ano, input$area, input$turno)
+  
   
   output$mapa <- renderLeaflet({
-    mapa(dados_mapa(),input$turno)
-  })#%>%
-    #bindCache(input$ano,input$turno,input$area)
+    if(input$turno=="Diferença"){
+      mapa(dados_mapa(),input$turno, diff = TRUE)
+    } else {
+      mapa(dados_mapa(),input$turno, diff = FALSE)
+    }
+    
+  }) %>%
+    bindCache(input$ano,input$turno,input$area)
   
   votos <- reactive({
     req(input$ano)
@@ -331,27 +341,69 @@ server <- function(input, output, session) {
     }else if(input$ano == 2022){
       votos_2022
     }
-  }) #%>%
-    #bindCache(input$ano)
+  }) %>%
+   bindCache(input$ano)
   
   tabela <- reactive({ 
-    votos() %>%
-      filter(NR_TURNO == input$turno & !(NR_VOTAVEL %in% c(95,96))) %>%
-      group_by(NM_VOTAVEL)%>%
-      summarise(TOTAL = sum(VOTOS))%>%
-      mutate('FREQ' = paste0(100*round(TOTAL / sum(TOTAL),4),"%")) %>%
-      arrange(desc(TOTAL))
     
-  }) # %>% bindCache(input$ano,input$turno)
+    if(input$turno=="Diferença"){
+      
+      diff = votos() %>%
+        filter(!(NR_VOTAVEL %in% c(95,96))) %>%
+        group_by(NM_VOTAVEL,NR_TURNO)%>%
+        summarise(TOTAL = sum(VOTOS))%>%
+        group_by(NR_TURNO)%>%
+        mutate('FREQ' = round(TOTAL / sum(TOTAL),4)) %>%
+        arrange(desc(TOTAL))
+      
+      diff %>% select(-TOTAL) %>%
+        pivot_wider(names_from = NR_TURNO, values_from = FREQ) %>% na.omit() %>%
+        mutate(diferenca = paste0(ifelse(`2` - `1`>0,"+",""),100*round(`2` - `1`,4),"%"),
+               `2` = paste0(100*round(`2`,4),"%"),
+               `1` = paste0(100*round(`1`,4),"%")) %>%
+        select(NM_VOTAVEL,`1`,`2`,diferenca)
+   
+       }else{
+         
+      votos() %>%
+        filter(NR_TURNO == input$turno & !(NR_VOTAVEL %in% c(95,96))) %>%
+        group_by(NM_VOTAVEL)%>%
+        summarise(TOTAL = sum(VOTOS))%>%
+        mutate('FREQ' = paste0(100*round(TOTAL / sum(TOTAL),4),"%")) %>%
+        arrange(desc(TOTAL))
+    }
+    
+  })  %>% bindCache(input$ano,input$turno)
   
   nulo <- reactive({ 
-    votos() %>%
-      filter(NR_TURNO == input$turno) %>%
-      group_by(NM_VOTAVEL)%>%
-      summarise(TOTAL = sum(VOTOS))%>%
-      mutate('FREQ' = paste0(100*round(TOTAL / sum(TOTAL),4),"%")) %>%
-      filter(NM_VOTAVEL %in% c("VOTO NULO","VOTO BRANCO")) %>%
-      arrange(desc(TOTAL))
+    
+    if(input$turno=='Diferença'){
+      diff_nulo = votos() %>%
+        group_by(NM_VOTAVEL,NR_TURNO)%>%
+        summarise(TOTAL = sum(VOTOS))%>%
+        group_by(NR_TURNO)%>%
+        mutate('FREQ' = round(TOTAL / sum(TOTAL),4)) %>%
+        arrange(desc(TOTAL))
+      
+      diff_nulo %>% select(-TOTAL) %>%
+        pivot_wider(names_from = NR_TURNO, values_from = FREQ) %>% na.omit() %>%
+        mutate(diferenca = paste0(ifelse(`2` - `1`>0,"+",""),100*round(`2` - `1`,4),"%"),
+               `2` = paste0(100*round(`2`,4),"%"),
+               `1` = paste0(100*round(`1`,4),"%")) %>%
+        select(NM_VOTAVEL,`1`,`2`,diferenca) %>%
+        filter(NM_VOTAVEL %in% c("VOTO NULO","VOTO BRANCO"))
+    
+    }else{
+      
+      votos() %>%
+        filter(NR_TURNO == input$turno) %>%
+        group_by(NM_VOTAVEL)%>%
+        summarise(TOTAL = sum(VOTOS))%>%
+        mutate('FREQ' = paste0(100*round(TOTAL / sum(TOTAL),4),"%")) %>%
+        filter(NM_VOTAVEL %in% c("VOTO NULO","VOTO BRANCO")) %>%
+        arrange(desc(TOTAL))
+      
+      }
     
   }) %>% bindCache(input$ano,input$turno)
   
